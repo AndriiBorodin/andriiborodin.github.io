@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>guest@terminal:~</title>
+    <style>
+        :root {
+            --bg-color: #0d1117; 
+            --text-color: #00ff41; 
+            --cmd-color: #f0f6fc; 
+            --error-color: #ff5555; 
+            --prompt-color: #2f81f7;
+            --link-color: #d2a8ff;
+            --desc-color: #8b949e;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+            font-size: 16px;
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        #terminal { 
+            max-width: 900px; 
+            margin: 0 auto;
+            position: relative;
+        }
+
+        #static-header {
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            padding-bottom: 10px;
+            padding-top: 10px;
+            z-index: 100;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        .output p, .output div { margin: 5px 0; white-space: pre-wrap; }
+        
+        .command-line { display: flex; align-items: center; margin-top: 10px; }
+        .prompt { color: var(--prompt-color); margin-right: 10px; white-space: nowrap; }
+        
+        input {
+            background: transparent; border: none; color: var(--cmd-color);
+            font-family: inherit; font-size: inherit; flex-grow: 1; outline: none;
+        }
+        
+        a { color: var(--link-color); text-decoration: none; border-bottom: 1px dashed var(--link-color); }
+        a:hover { background: var(--link-color); color: var(--bg-color); }
+
+        .highlight { color: #d2a8ff; font-weight: bold; }
+        .section-title { color: #79c0ff; font-weight: bold; text-decoration: underline; margin-top: 25px; margin-bottom: 15px; display: block;}
+
+        .help-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+        .help-table td {
+            vertical-align: top;
+            padding-bottom: 5px;
+        }
+        .help-cmd { 
+            color: var(--text-color); 
+            font-weight: bold; 
+            width: 100px; 
+            white-space: nowrap;
+        }
+        .help-desc { 
+            color: var(--desc-color); 
+        }
+
+        .job-block {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .job-dash {
+            min-width: 20px;
+            font-weight: bold;
+        }
+        .job-desc { flex: 1; }
+
+        .info-block {
+            display: flex;
+            margin-bottom: 5px;
+        }
+        .info-label {
+            min-width: 110px; 
+            font-weight: bold;
+            color: #d2a8ff;
+        }
+        .info-val {
+            flex: 1;
+        }
+
+        .thm-badge {
+            margin-top: 20px;
+            margin-bottom: 0;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div id="terminal">
+    <div id="static-header">
+        <p>Last login: <span id="date-time"></span> on ttys000</p>
+        <p>Welcome to <span class="highlight">Andrii Borodin's Terminal</span></p>
+        <p>Role: <span class="highlight">Software Test Engineer / Penetration Tester</span></p>
+        <p>Type <span class="highlight">'help'</span> to see available commands.</p>
+    </div>
+
+    <div id="output"></div>
+
+    <div class="command-line">
+        <span class="prompt">guest@terminal:~$</span>
+        <input type="text" id="commandInput" autocomplete="off" autofocus>
+    </div>
+</div>
+
+<script>
+    const input = document.getElementById('commandInput');
+    const output = document.getElementById('output');
+    const header = document.getElementById('static-header');
+
+    document.getElementById('date-time').innerText = new Date().toLocaleString();
+    
+    document.addEventListener('click', () => input.focus());
+
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            const command = input.value.trim().toLowerCase();
+            processCommand(command);
+            input.value = '';
+        }
+    });
+
+    function processCommand(cmd) {
+        const historyLine = document.createElement('div');
+        historyLine.innerHTML = `<p><span class="prompt">guest@terminal:~$</span> <span style="color:var(--cmd-color)">${cmd}</span></p>`;
+        output.appendChild(historyLine);
+
+        let response = '';
+
+        switch(cmd) {
+            case 'help':
+                response = `
+<span class="highlight">Available commands:</span>
+<table class="help-table">
+  <tr><td class="help-cmd">whoami</td><td class="help-desc">Info, Skills, Certs & PDF download</td></tr>
+  <tr><td class="help-cmd">github</td><td class="help-desc">Open GitHub profile</td></tr>
+  <tr><td class="help-cmd">clear</td><td class="help-desc">Clear terminal screen</td></tr>
+</table>
+                `;
+                break;
+
+            case 'whoami':
+            case 'resume':
+            case 'cv':
+                response = `
+<span class="section-title">CONTACTS</span>
+
+<div class="info-block">
+    <div class="info-label">Name:</div>
+    <div class="info-val">Andrii Borodin</div>
+</div>
+<div class="info-block">
+    <div class="info-label">Role:</div>
+    <div class="info-val">Software Test Engineer / Penetration Tester</div>
+</div>
+<div class="info-block">
+    <div class="info-label">Phone:</div>
+    <div class="info-val">+380678280202</div>
+</div>
+<div class="info-block">
+    <div class="info-label">Location:</div>
+    <div class="info-val">Kyiv, Ukraine</div>
+</div>
+<div class="info-block">
+    <div class="info-label">Email:</div>
+    <div class="info-val"><a href="mailto:andrii.borodin@protonmail.com">andrii.borodin@protonmail.com</a></div>
+</div>
+<div class="info-block">
+    <div class="info-label">LinkedIn:</div>
+    <div class="info-val"><a href="https://www.linkedin.com/in/andrii-borodin/" target="_blank">linkedin.com/in/andrii-borodin</a></div>
+</div>
+<div class="info-block">
+    <div class="info-label">Telegram:</div>
+    <div class="info-val">@Iguides1</div>
+</div>
+
+
+<span class="section-title">TECH SKILLS</span>
+
+<div class="info-block">
+    <div class="info-label">Security:</div>
+    <div class="info-val">OWASP Top 10, CWE top 25, Vulnerabilities assessment, Burp Suite, SQLmap, Nmap, Metasploit</div>
+</div>
+<div class="info-block">
+    <div class="info-label">Network:</div>
+    <div class="info-val">Wireshark, Charles, Proxyman, TCP/IP, TLS/SSL, DNS</div>
+</div>
+<div class="info-block">
+    <div class="info-label">Coding:</div>
+    <div class="info-val">Python, C#, Java, HTML/CSS, SQL</div>
+</div>
+<div class="info-block">
+    <div class="info-label">Infra/DB:</div>
+    <div class="info-val">Linux (Bash), Docker, Kubernetes, AWS, MySQL, PostgreSQL, Redis, Kafka</div>
+</div>
+<div class="info-block">
+    <div class="info-label">Testing:</div>
+    <div class="info-val">REST API, gRPC, SOAP, Postman, Swagger</div>
+</div>
+
+
+<span class="section-title">EXPERIENCE</span>
+
+<span class="highlight">Evoplay</span> (Aug 2023 - Present)
+<div class="job-block">
+    <div class="job-dash">-</div>
+    <div class="job-desc">Web & Backend testing, Security testing (improper error handling, injections).</div>
+</div>
+
+<span class="highlight">Parimatch Tech</span> (Dec 2021 - May 2023)
+<div class="job-block">
+    <div class="job-dash">-</div>
+    <div class="job-desc">Backend E2E automation (C#), Microservices testing.</div>
+</div>
+
+<span class="highlight">Reface</span> (Apr 2021 - Dec 2021)
+<div class="job-block">
+    <div class="job-dash">-</div>
+    <div class="job-desc">Python automation, REST & gRPC testing, high-load logs analysis.</div>
+</div>
+
+<span class="highlight">Yellow Stone</span> (Feb 2020 - Apr 2021)
+<div class="job-block">
+    <div class="job-dash">-</div>
+    <div class="job-desc">High-load mailing systems & Chat bots testing.</div>
+</div>
+
+<span class="highlight">Softengi</span> (Sep 2018 - Feb 2020)
+<div class="job-block">
+    <div class="job-dash">-</div>
+    <div class="job-desc">Worked with multiple projects, e-commerce, billing systems, IOT, web & mobile testing. Defect Tracking and Management.</div>
+</div>
+
+<span class="highlight">QA Lecturer, Beetroot Academy</span> (2021 - 2022)
+<div class="job-block">
+    <div class="job-dash">-</div>
+    <div class="job-desc">Completed QA Engineer programs as a Lecturer for 3 student groups.</div>
+</div>
+
+
+<span class="section-title">CERTIFICATIONS & PROFILES</span>
+- ISTQB Certified Tester (FL)<br>
+- TryHackMe: Junior Penetration Tester
+  
+<div class="thm-badge">
+    <iframe src="https://tryhackme.com/api/v2/badges/public-profile?userPublicId=3533593" style="border:none; width: 420px; height: 110px;"></iframe>
+</div>
+
+<div>
+------------------------------------------------<br>
+[ <a href="Andrii_Borodin_pt_CV.pdf" download>DOWNLOAD FULL CV (PDF)</a> ] <br>
+------------------------------------------------
+</div>
+                `;
+                break;
+
+            case 'github':
+                response = `<p>Redirecting to GitHub (AndriiBorodin)...</p>`;
+                setTimeout(() => {
+                    window.open('https://github.com/AndriiBorodin', '_blank');
+                }, 1000);
+                break;
+
+            case 'clear':
+                output.innerHTML = '';
+                return;
+
+            case '':
+                response = '';
+                break;
+
+            default:
+                response = `<p style="color:var(--error-color)">Command not found: ${cmd}. Type 'help'.</p>`;
+        }
+
+        if (response) {
+            const respLine = document.createElement('div');
+            respLine.innerHTML = response;
+            output.appendChild(respLine);
+
+            if (cmd === 'whoami' || cmd === 'cv' || cmd === 'resume') {
+                const headerHeight = header.offsetHeight;
+                const elementPosition = respLine.getBoundingClientRect().top + window.scrollY;
+                
+                window.scrollTo({
+                    top: elementPosition - headerHeight - 10,
+                    behavior: 'smooth'
+                });
+            } else {
+                window.scrollTo(0, document.body.scrollHeight);
+            }
+        } else {
+             window.scrollTo(0, document.body.scrollHeight);
+        }
+    }
+</script>
+
+</body>
+</html>

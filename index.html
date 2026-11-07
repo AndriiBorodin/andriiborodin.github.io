@@ -111,9 +111,53 @@
             margin-bottom: 0;
             display: block;
         }
+
+        .quick-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+            margin-bottom: 5px;
+        }
+
+        .action-chip {
+            background: #161b22;
+            border: 1px solid #30363d;
+            color: var(--text-color);
+            padding: 4px 10px;
+            font-family: inherit;
+            font-size: 13px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+
+        .action-chip:hover {
+            background: #21262d;
+            border-color: var(--text-color);
+            color: #fff;
+        }
+
+        .action-chip:active {
+            transform: scale(0.96);
+        }
+
+        #matrix-canvas {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 9999;
+            background: black;
+        }
     </style>
 </head>
 <body>
+
+<canvas id="matrix-canvas"></canvas>
 
 <div id="terminal">
     <div id="static-header">
@@ -129,24 +173,147 @@
         <span class="prompt">guest@terminal:~$</span>
         <input type="text" id="commandInput" autocomplete="off" autofocus>
     </div>
+
+    <div class="quick-actions" id="quickActions">
+        <button type="button" class="action-chip" data-cmd="help">help</button>
+        <button type="button" class="action-chip" data-cmd="whoami">whoami</button>
+        <button type="button" class="action-chip" data-cmd="skills">skills</button>
+        <button type="button" class="action-chip" data-cmd="contact">contact</button>
+        <button type="button" class="action-chip" data-cmd="matrix">matrix</button>
+        <button type="button" class="action-chip" data-cmd="clear">clear</button>
+    </div>
 </div>
 
 <script>
     const input = document.getElementById('commandInput');
     const output = document.getElementById('output');
     const header = document.getElementById('static-header');
+    const matrixCanvas = document.getElementById('matrix-canvas');
+
+    // Supported commands list for tab completion & quick actions
+    const COMMANDS = ['help', 'whoami', 'skills', 'experience', 'certs', 'contact', 'github', 'matrix', 'clear', 'resume', 'cv'];
+
+    // Command History State
+    const history = [];
+    let historyIndex = -1;
 
     document.getElementById('date-time').innerText = new Date().toLocaleString();
     
-    document.addEventListener('click', () => input.focus());
-
-    input.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            const command = input.value.trim().toLowerCase();
-            processCommand(command);
-            input.value = '';
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('a') && !e.target.closest('.action-chip')) {
+            input.focus();
         }
     });
+
+    // Quick action buttons click listener
+    document.getElementById('quickActions').addEventListener('click', (e) => {
+        const btn = e.target.closest('.action-chip');
+        if (!btn) return;
+        const cmd = btn.getAttribute('data-cmd');
+        if (cmd) {
+            input.value = cmd;
+            handleCommandSubmit(cmd);
+        }
+    });
+
+    // Keyboard handlers (Enter, ArrowUp, ArrowDown, Tab)
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            const raw = input.value;
+            const command = raw.trim().toLowerCase();
+            if (raw.trim()) {
+                history.push(raw);
+                historyIndex = history.length;
+            }
+            input.value = '';
+            processCommand(command);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (history.length > 0 && historyIndex > 0) {
+                historyIndex--;
+                input.value = history[historyIndex];
+            }
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                input.value = history[historyIndex];
+            } else {
+                historyIndex = history.length;
+                input.value = '';
+            }
+        } else if (e.key === 'Tab') {
+            e.preventDefault();
+            const current = input.value.trim().toLowerCase();
+            if (!current) return;
+            const matches = COMMANDS.filter(c => c.startsWith(current));
+            if (matches.length === 1) {
+                input.value = matches[0];
+            } else if (matches.length > 1) {
+                // Show matching options in terminal
+                const hintLine = document.createElement('div');
+                hintLine.innerHTML = `<p style="color:var(--desc-color)">${matches.join('   ')}</p>`;
+                output.appendChild(hintLine);
+                window.scrollTo(0, document.body.scrollHeight);
+            }
+        }
+    });
+
+    function handleCommandSubmit(cmd) {
+        history.push(cmd);
+        historyIndex = history.length;
+        input.value = '';
+        processCommand(cmd);
+    }
+
+    // Matrix Rain Effect
+    let matrixInterval = null;
+    function startMatrix() {
+        matrixCanvas.style.display = 'block';
+        const ctx = matrixCanvas.getContext('2d');
+        matrixCanvas.width = window.innerWidth;
+        matrixCanvas.height = window.innerHeight;
+
+        const letters = '0123456789ABCDEF0101010101ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%&*';
+        const fontSize = 16;
+        const columns = Math.floor(matrixCanvas.width / fontSize);
+        const drops = Array(columns).fill(1);
+
+        function draw() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+
+            ctx.fillStyle = '#00ff41';
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = letters.charAt(Math.floor(Math.random() * letters.length));
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        matrixInterval = setInterval(draw, 33);
+
+        const stopMatrix = () => {
+            clearInterval(matrixInterval);
+            matrixCanvas.style.display = 'none';
+            window.removeEventListener('keydown', onKey);
+            matrixCanvas.removeEventListener('click', stopMatrix);
+        };
+        const onKey = (e) => {
+            if (e.key === 'Escape' || e.key === 'q' || e.key === 'Enter') {
+                stopMatrix();
+            }
+        };
+
+        window.addEventListener('keydown', onKey);
+        matrixCanvas.addEventListener('click', stopMatrix);
+    }
 
     function processCommand(cmd) {
         const historyLine = document.createElement('div');
@@ -160,11 +327,74 @@
                 response = `
 <span class="highlight">Available commands:</span>
 <table class="help-table">
-  <tr><td class="help-cmd">whoami</td><td class="help-desc">Info, Skills, Certs & PDF download</td></tr>
-  <tr><td class="help-cmd">github</td><td class="help-desc">Open GitHub profile</td></tr>
+  <tr><td class="help-cmd">whoami</td><td class="help-desc">Full resume (Contacts, Skills, Experience, Certs)</td></tr>
+  <tr><td class="help-cmd">skills</td><td class="help-desc">Technical skills (Security, QA, Network, Code)</td></tr>
+  <tr><td class="help-cmd">experience</td><td class="help-desc">Work history & employment background</td></tr>
+  <tr><td class="help-cmd">certs</td><td class="help-desc">Certificates & TryHackMe profile</td></tr>
+  <tr><td class="help-cmd">contact</td><td class="help-desc">Email, phone, LinkedIn, Telegram</td></tr>
+  <tr><td class="help-cmd">matrix</td><td class="help-desc">Enter the Matrix (press ESC or click to exit)</td></tr>
+  <tr><td class="help-cmd">github</td><td class="help-desc">Open GitHub profile in new tab</td></tr>
   <tr><td class="help-cmd">clear</td><td class="help-desc">Clear terminal screen</td></tr>
 </table>
                 `;
+                break;
+
+            case 'contact':
+                response = `
+<span class="section-title">CONTACTS</span>
+<div class="info-block"><div class="info-label">Name:</div><div class="info-val">Andrii Borodin</div></div>
+<div class="info-block"><div class="info-label">Role:</div><div class="info-val">Software Test Engineer / Penetration Tester</div></div>
+<div class="info-block"><div class="info-label">Phone:</div><div class="info-val">+380678280202</div></div>
+<div class="info-block"><div class="info-label">Location:</div><div class="info-val">Kyiv, Ukraine</div></div>
+<div class="info-block"><div class="info-label">Email:</div><div class="info-val"><a href="mailto:andrii.borodin@protonmail.com">andrii.borodin@protonmail.com</a></div></div>
+<div class="info-block"><div class="info-label">LinkedIn:</div><div class="info-val"><a href="https://www.linkedin.com/in/andrii-borodin/" target="_blank">linkedin.com/in/andrii-borodin</a></div></div>
+<div class="info-block"><div class="info-label">Telegram:</div><div class="info-val"><a href="https://t.me/Iguides1" target="_blank">@Iguides1</a></div></div>
+                `;
+                break;
+
+            case 'skills':
+                response = `
+<span class="section-title">TECH SKILLS</span>
+<div class="info-block"><div class="info-label">Security:</div><div class="info-val">OWASP Top 10, CWE top 25, Vulnerabilities assessment, Burp Suite, SQLmap, Nmap, Metasploit</div></div>
+<div class="info-block"><div class="info-label">Network:</div><div class="info-val">Wireshark, Charles, Proxyman, TCP/IP, TLS/SSL, DNS</div></div>
+<div class="info-block"><div class="info-label">Coding:</div><div class="info-val">Python, C#, Java, HTML/CSS, SQL</div></div>
+<div class="info-block"><div class="info-label">Infra/DB:</div><div class="info-val">Linux (Bash), Docker, Kubernetes, AWS, MySQL, PostgreSQL, Redis, Kafka</div></div>
+<div class="info-block"><div class="info-label">Testing:</div><div class="info-val">REST API, gRPC, SOAP, Postman, Swagger</div></div>
+                `;
+                break;
+
+            case 'experience':
+                response = `
+<span class="section-title">EXPERIENCE</span>
+<span class="highlight">Evoplay</span> (Aug 2023 - Present)
+<div class="job-block"><div class="job-dash">-</div><div class="job-desc">Web & Backend testing, Security testing (improper error handling, injections).</div></div>
+<span class="highlight">Parimatch Tech</span> (Dec 2021 - May 2023)
+<div class="job-block"><div class="job-dash">-</div><div class="job-desc">Backend E2E automation (C#), Microservices testing.</div></div>
+<span class="highlight">Reface</span> (Apr 2021 - Dec 2021)
+<div class="job-block"><div class="job-dash">-</div><div class="job-desc">Python automation, REST & gRPC testing, high-load logs analysis.</div></div>
+<span class="highlight">Yellow Stone</span> (Feb 2020 - Apr 2021)
+<div class="job-block"><div class="job-dash">-</div><div class="job-desc">High-load mailing systems & Chat bots testing.</div></div>
+<span class="highlight">Softengi</span> (Sep 2018 - Feb 2020)
+<div class="job-block"><div class="job-dash">-</div><div class="job-desc">Worked with multiple projects, e-commerce, billing systems, IOT, web & mobile testing. Defect Tracking and Management.</div></div>
+<span class="highlight">QA Lecturer, Beetroot Academy</span> (2021 - 2022)
+<div class="job-block"><div class="job-dash">-</div><div class="job-desc">Completed QA Engineer programs as a Lecturer for 3 student groups.</div></div>
+                `;
+                break;
+
+            case 'certs':
+                response = `
+<span class="section-title">CERTIFICATIONS & PROFILES</span>
+- ISTQB Certified Tester (FL)<br>
+- TryHackMe: Junior Penetration Tester
+<div class="thm-badge">
+    <iframe src="https://tryhackme.com/api/v2/badges/public-profile?userPublicId=3533593" style="border:none; width: 420px; height: 110px;"></iframe>
+</div>
+                `;
+                break;
+
+            case 'matrix':
+                startMatrix();
+                response = `<p style="color:var(--text-color)">Entering the Matrix... (Press ESC or click screen to exit)</p>`;
                 break;
 
             case 'whoami':
@@ -199,7 +429,7 @@
 </div>
 <div class="info-block">
     <div class="info-label">Telegram:</div>
-    <div class="info-val">@Iguides1</div>
+    <div class="info-val"><a href="https://t.me/Iguides1" target="_blank">@Iguides1</a></div>
 </div>
 
 
